@@ -120,11 +120,11 @@ export interface VaultSummary {
 
 export async function fetchVaultSummary(level: VaultLevelId = "jhs"): Promise<VaultSummary> {
   const { data } = await db("ges_vault_jhs")
-    .select("subject, grade, source_type, embedding")
+    .select("subject, grade, source_type, published")
     .eq("level", level)
     .limit(20000);
-  const rows = ((data ?? []) as { subject: string; grade: string; source_type: string; embedding: unknown }[]).map(
-    (r) => ({ ...r, indexed: r.embedding !== null && r.embedding !== undefined }),
+  const rows = ((data ?? []) as { subject: string; grade: string; source_type: string; published: unknown }[]).map(
+    (r) => ({ ...r, indexed: r.published === true }),
   );
   const tally = (key: "subject" | "grade" | "source_type") => {
     const map = new Map<string, number>();

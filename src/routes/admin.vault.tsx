@@ -96,7 +96,7 @@ function AdminVault() {
     if (role === "admin") void reload();
   }, [role, reload]);
 
-  /** Saves pieces in batches, then makes sure every new piece is searchable by Ama. */
+  /** Saves pieces in batches. They stay hidden from Ama until "Update AI tutor" is tapped. */
   const save = async (entries: VaultEntry[]) => {
     let added = 0;
     for (let i = 0; i < entries.length; i += 50) {
@@ -104,13 +104,29 @@ function AdminVault() {
       added += res.added;
       setProgress(`Saved ${added} of ${entries.length}…`);
     }
-    for (let guard = 0; guard < 80; guard++) {
-      const res = await runIndex({ data: { limit: 60 } });
-      if (res.indexed === 0 || res.remaining === 0) break;
-      setProgress(`Preparing for Ama… ${res.remaining} left`);
-    }
     return added;
   };
+
+  /** Publishes every pending piece so Ama can teach from it. */
+  const updateTutor = async () => {
+    setBusy("publish");
+    try {
+      for (let guard = 0; guard < 200; guard++) {
+        const res = await runIndex({ data: { limit: 60 } });
+        if (res.indexed === 0 || res.remaining === 0) break;
+        setProgress(`Updating Ama… ${res.remaining} left`);
+      }
+      toast.success("AI tutor updated — Ama can now use the new material");
+      await reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setBusy(null);
+      setProgress("");
+    }
+  };
+
+  const pending = (summary?.total ?? 0) - (summary?.indexed ?? 0);
 
   /** Fingerprint of a bundle file — changes only when the file gets new content. */
   const fingerprint = (text: string) => {
@@ -148,7 +164,7 @@ function AdminVault() {
       const added = await save(entries);
       localStorage.setItem(`vault_loaded_${tag}`, fingerprint(text));
       setLoaded((s) => ({ ...s, [tag]: true }));
-      toast.success(`Load complete: ${added} official syllabus pieces for ${label}`);
+      toast.success(`Load complete: ${added} official syllabus pieces for ${label}. Tap "Update AI tutor" so Ama can use them.`);
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load the curriculum");
@@ -176,7 +192,7 @@ function AdminVault() {
       }
       if (entries.length === 0) throw new Error("No readable text was found in that file");
       const added = await save(entries);
-      toast.success(`Vault updated — Ama can now use ${added} new pieces`);
+      toast.success(`${added} new pieces saved. Tap "Update AI tutor" so Ama can use them.`);
       setPdf(null);
       await reload();
     } catch (err) {
@@ -207,7 +223,7 @@ function AdminVault() {
           source_type: kind === "past" ? (levelId === "jhs" ? "bece_past_question" : "past_question") : "textbook",
         },
       ]);
-      toast.success("Added to the vault");
+      toast.success("Added to the vault — tap \"Update AI tutor\" so Ama can use it");
       setContent("");
       setSourceText("");
       await reload();
@@ -302,6 +318,24 @@ function AdminVault() {
             {busy === "official-shs" ? progress || "Loading…" : loaded["official-shs"] ? "✓ Load complete — SHS 1–3 curriculum" : "Load official NaCCA SHS 1–3 curriculum"}
           </button>
 
+          <button
+            type="button"
+            onClick={() => void updateTutor()}
+            disabled={busy !== null || pending <= 0}
+            className="mt-2 h-11 w-full rounded-xl bg-accent text-sm font-semibold text-accent-foreground disabled:opacity-60"
+          >
+            {busy === "publish"
+              ? progress || "Updating…"
+              : pending > 0
+                ? `Update AI tutor — ${pending} new piece${pending === 1 ? "" : "s"} waiting`
+                : "✓ AI tutor is up to date"}
+          </button>
+          {pending > 0 && busy === null ? (
+            <p className="mt-1 text-center text-[11px] text-muted-foreground">
+              Ama cannot use newly loaded material until you tap Update.
+            </p>
+          ) : null}
+
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">
             {(["textbook", "past"] as Kind[]).map((k) => (
               <button
@@ -352,7 +386,7 @@ function AdminVault() {
           />
           <Button className="mt-3 w-full gap-2" onClick={() => void update()} disabled={busy !== null || !pdf}>
             {busy === "update" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            Update vault
+            Save to vault
           </Button>
           {progress ? <p className="mt-2 text-center text-xs text-muted-foreground">{progress}</p> : null}
         </section>

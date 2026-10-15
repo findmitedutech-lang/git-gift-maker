@@ -120,23 +120,19 @@ export const addVaultEntries = createServerFn({ method: "POST" })
     await assertAdmin(context);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
-    let embeddings: number[][] = [];
-    try {
-      embeddings = await embedTexts(data.entries.map((e) => rowText(e)));
-    } catch {
-      embeddings = [];
-    }
-    const rows = data.entries.map((e, i) => ({
+    // New rows stay unpublished (invisible to Ama) until the admin taps "Update AI tutor".
+    const rows = data.entries.map((e) => ({
       ...e,
       created_by: context.userId,
-      embedding: embeddings[i] ? JSON.stringify(embeddings[i]) : null,
+      embedding: null,
+      published: false,
     }));
     const { error } = await sb.from("ges_vault_jhs").insert(rows);
     if (error) throw new Error(error.message);
-    return { added: rows.length, indexed: embeddings.length };
+    return { added: rows.length, indexed: 0 };
   });
 
-/** Builds the search index for any vault rows that do not have one yet. */
+/** Publishes pending vault rows: embeds them so Ama can find and use them. */
 export const indexVault = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ limit: z.number().int().min(1).max(200).default(60) }).parse(data))
@@ -147,7 +143,7 @@ export const indexVault = createServerFn({ method: "POST" })
     const { data: rows, error } = await sb
       .from("ges_vault_jhs")
       .select("id, subject, grade, strand, sub_strand, indicator, content")
-      .is("embedding", null)
+      .eq("published", false)
       .limit(data.limit);
     if (error) throw new Error(error.message);
     const list = (rows ?? []) as (VaultEntry & { id: string })[];
@@ -156,13 +152,13 @@ export const indexVault = createServerFn({ method: "POST" })
     for (let i = 0; i < list.length; i++) {
       await sb
         .from("ges_vault_jhs")
-        .update({ embedding: JSON.stringify(embeddings[i]) })
+        .update({ embedding: JSON.stringify(embeddings[i]), published: true })
         .eq("id", list[i]!.id);
     }
     const { count } = await sb
       .from("ges_vault_jhs")
       .select("id", { count: "exact", head: true })
-      .is("embedding", null);
+      .eq("published", false);
     return { indexed: list.length, remaining: count ?? 0 };
   });
 

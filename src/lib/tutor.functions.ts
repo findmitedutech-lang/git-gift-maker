@@ -101,6 +101,12 @@ function angleList(round: number) {
   return [...ANGLES.slice(start), ...ANGLES.slice(0, start)].join("; ");
 }
 
+const GRADE_NAMES: Record<string, string> = {
+  B1: "Basic 1", B2: "Basic 2", B3: "Basic 3", B4: "Basic 4", B5: "Basic 5", B6: "Basic 6",
+  B7: "JHS 1 (Basic 7)", B8: "JHS 2 (Basic 8)", B9: "JHS 3 (Basic 9)",
+  SHS1: "SHS 1", SHS2: "SHS 2", SHS3: "SHS 3",
+};
+
 /** Creates WASSCE-style practice questions when no past paper question exists for a topic. */
 export const generateQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -114,6 +120,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
         language: z.string().default("english"),
         standard: z.string().max(600).optional(),
         level: z.enum(["shs", "jhs", "primary", "kids", "others"]).optional(),
+        grade: z.string().max(12).optional(),
         avoid: z.array(z.string().max(400)).max(40).optional(),
         round: z.number().int().min(0).max(100000).optional(),
       })
@@ -127,7 +134,8 @@ export const generateQuestions = createServerFn({ method: "POST" })
       kids: "Kindergarten / early years level. Very simple, fun questions a young child can answer.",
       others: "Tertiary level in Ghana.",
     };
-    const base = levelLine[data.level ?? "shs"];
+    const gradeName = data.grade ? (GRADE_NAMES[data.grade] ?? data.grade) : "";
+    const base = `${levelLine[data.level ?? "shs"]}${gradeName ? ` The student is in ${gradeName}: pitch every question exactly at ${gradeName} standard.` : ""}`;
     const standardLine = data.standard
       ? `${base} ${data.standard} Write the questions in the style of that body's licensing/qualifying exams, not WASSCE.`
       : base;
@@ -387,7 +395,7 @@ export const chatWithAma = createServerFn({ method: "POST" })
         count: 3,
       });
       if (chunks.length === 0) {
-        return { answer: primary ? "This is not in your Basic syllabus vault yet." : "This is not in the JHS syllabus, focus on BECE.", sources: [] as WebSource[] };
+        return { answer: VAULT_NOT_FOUND[data.level], sources: [] as WebSource[] };
       }
       const answer = await callAi(
         [

@@ -167,19 +167,20 @@ export const generateQuestions = createServerFn({ method: "POST" })
 /**
  * JHS students are taught strictly from the GES vault — never from the internet.
  */
-const VAULT_NOT_FOUND: Record<string, string> = {
+const VAULT_NOT_FOUND = {
   primary: "This is not in your Basic syllabus vault yet.",
   jhs: "This is not in the JHS syllabus, focus on BECE.",
   shs: "This is not in your SHS syllabus vault yet.",
-};
-const VAULT_AUDIENCE: Record<string, string> = {
+} as const;
+type VaultLevel = keyof typeof VAULT_NOT_FOUND;
+const VAULT_AUDIENCE: Record<VaultLevel, string> = {
   primary: "primary pupils (Basic 1 to Basic 6)",
   jhs: "JHS students (Basic 7 to Basic 9)",
   shs: "SHS students (SHS 1 to SHS 3), preparing for WASSCE",
 };
-function becePersona(name: string, context: string, level: string) {
-  const notFound = VAULT_NOT_FOUND[level] ?? VAULT_NOT_FOUND.jhs;
-  return `You are ${name}, FindMit's tutor for Ghanaian ${VAULT_AUDIENCE[level] ?? VAULT_AUDIENCE.jhs}.
+function becePersona(name: string, context: string, level: VaultLevel) {
+  const notFound = VAULT_NOT_FOUND[level];
+  return `You are ${name}, FindMit's tutor for Ghanaian ${VAULT_AUDIENCE[level]}.
 
 Rules you must never break:
 - You ONLY answer using the official GES NaCCA syllabus and exam material in the VAULT below.
@@ -225,6 +226,7 @@ export const askTutor = createServerFn({ method: "POST" })
         : text;
 
     if (data.level === "jhs" || data.level === "primary" || data.level === "shs") {
+      const vl: VaultLevel = data.level;
       const { searchVault, vaultContext } = await import("@/lib/vault.functions");
       let query = data.prompt;
       if (data.image) {
@@ -246,11 +248,11 @@ export const askTutor = createServerFn({ method: "POST" })
         count: 3,
       });
       if (chunks.length === 0) {
-        return { answer: VAULT_NOT_FOUND[data.level], vault: [] };
+        return { answer: VAULT_NOT_FOUND[vl], vault: [] };
       }
       const answer = await callAi(
         [
-          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), data.level) + photoNote },
+          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), vl) + photoNote },
           { role: "user", content: userContent(data.prompt) },
         ],
         false,
@@ -388,6 +390,7 @@ export const chatWithAma = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // JHS students learn strictly from the GES vault — never from the internet.
     if (data.level === "jhs" || data.level === "primary" || data.level === "shs") {
+      const vl: VaultLevel = data.level;
       const { searchVault, vaultContext } = await import("@/lib/vault.functions");
       const chunks = await searchVault(context.supabase, `${data.subject ?? ""} ${data.question}`.trim(), {
         grade: data.grade ?? null,
@@ -395,11 +398,11 @@ export const chatWithAma = createServerFn({ method: "POST" })
         count: 3,
       });
       if (chunks.length === 0) {
-        return { answer: VAULT_NOT_FOUND[data.level], sources: [] as WebSource[] };
+        return { answer: VAULT_NOT_FOUND[vl], sources: [] as WebSource[] };
       }
       const answer = await callAi(
         [
-          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), data.level) },
+          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), vl) },
           ...data.history,
           { role: "user", content: data.question },
         ],

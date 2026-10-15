@@ -96,7 +96,7 @@ function AdminVault() {
     if (role === "admin") void reload();
   }, [role, reload]);
 
-  /** Saves pieces in batches, then makes sure every new piece is searchable by Ama. */
+  /** Saves pieces in batches. They stay hidden from Ama until "Update AI tutor" is tapped. */
   const save = async (entries: VaultEntry[]) => {
     let added = 0;
     for (let i = 0; i < entries.length; i += 50) {
@@ -104,13 +104,29 @@ function AdminVault() {
       added += res.added;
       setProgress(`Saved ${added} of ${entries.length}…`);
     }
-    for (let guard = 0; guard < 80; guard++) {
-      const res = await runIndex({ data: { limit: 60 } });
-      if (res.indexed === 0 || res.remaining === 0) break;
-      setProgress(`Preparing for Ama… ${res.remaining} left`);
-    }
     return added;
   };
+
+  /** Publishes every pending piece so Ama can teach from it. */
+  const updateTutor = async () => {
+    setBusy("publish");
+    try {
+      for (let guard = 0; guard < 200; guard++) {
+        const res = await runIndex({ data: { limit: 60 } });
+        if (res.indexed === 0 || res.remaining === 0) break;
+        setProgress(`Updating Ama… ${res.remaining} left`);
+      }
+      toast.success("AI tutor updated — Ama can now use the new material");
+      await reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setBusy(null);
+      setProgress("");
+    }
+  };
+
+  const pending = (summary?.total ?? 0) - (summary?.indexed ?? 0);
 
   /** Fingerprint of a bundle file — changes only when the file gets new content. */
   const fingerprint = (text: string) => {

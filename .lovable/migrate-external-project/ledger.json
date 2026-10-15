@@ -1,0 +1,8 @@
+[
+  {"capability":"code","source":"github findmitedutech-lang/star-mover","outcome":"migrate","status":"done","next_action":"verify build"},
+  {"capability":"schema","source":"66 migration files","outcome":"migrate","status":"pending","next_action":"apply migrations to Lovable Cloud in batches"},
+  {"capability":"records","source":"old database","outcome":"migrate","status":"pending","next_action":"request per-table CSV/JSON export"},
+  {"capability":"auth identities","source":"old Cloud auth users","outcome":"migrate","status":"pending","next_action":"request user export"},
+  {"capability":"storage files","source":"buckets avatars, ghana-cards, facial-verification, etc.","outcome":"migrate","status":"pending","next_action":"create buckets, request file export"},
+  {"capability":"secrets","source":"Cloudflare, Firebase, Paystack, Gemini, Arkesel, Google","outcome":"preserve","status":"pending","next_action":"request keys via secure form"}
+]

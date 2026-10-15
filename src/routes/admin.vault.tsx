@@ -288,10 +288,10 @@ function AdminVault() {
           <button
             type="button"
             onClick={() => void loadOfficial()}
-            disabled={busy !== null || loaded.official}
+            disabled={busy !== null || loaded["official"]}
             className="mt-3 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {busy === "official" ? progress || "Loading…" : loaded.official ? "✓ Load complete — Basic 1–9 curriculum" : "Load official NaCCA Basic 1–9 curriculum"}
+            {busy === "official" ? progress || "Loading…" : loaded["official"] ? "✓ Load complete — Basic 1–9 curriculum" : "Load official NaCCA Basic 1–9 curriculum"}
           </button>
           <button
             type="button"

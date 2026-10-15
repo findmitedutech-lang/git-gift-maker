@@ -119,6 +119,12 @@ async function fileToImage(file: File): Promise<string> {
   }
 }
 
+const GRADE_OPTIONS: Record<string, { code: string; label: string }[]> = {
+  primary: [1, 2, 3, 4, 5, 6].map((n) => ({ code: `B${n}`, label: `Basic ${n}` })),
+  jhs: [1, 2, 3].map((n) => ({ code: `B${n + 6}`, label: `JHS ${n} (Basic ${n + 6})` })),
+  shs: [1, 2, 3].map((n) => ({ code: `SHS${n}`, label: `SHS ${n}` })),
+};
+
 function TutorPage() {
   const { user } = useAuth();
   const { isAdmin } = useRole();
@@ -199,14 +205,56 @@ function TutorPage() {
     () => levelSubjects.find((s) => s.name === subject)?.topics ?? [],
     [levelSubjects, subject],
   );
+  // Exact class (e.g. JHS 2 = B8) the student chose; saved per user until they update it again.
+  const [activeGrade, setActiveGrade] = useState<string>("");
+  const [draftGrade, setDraftGrade] = useState<string>("");
+  const gradeRef = useRef<string>("");
+  gradeRef.current = level && GRADE_OPTIONS[level.id] ? activeGrade : "";
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(`tutor_active_class_${user.id}`) ?? "null") as
+        | { levelId: string; grade: string }
+        | null;
+      if (!saved) return;
+      const lv = CLASS_LEVELS.find((l) => l.id === saved.levelId);
+      if (!lv) return;
+      setActiveGrade(saved.grade);
+      setDraftGrade(saved.grade);
+      setLevel((cur) => cur ?? lv);
+    } catch {
+      /* ignore bad saved class */
+    }
+  }, [user]);
+  const updateGrade = () => {
+    if (!user || !level || !draftGrade) return;
+    localStorage.setItem(`tutor_active_class_${user.id}`, JSON.stringify({ levelId: level.id, grade: draftGrade }));
+    setActiveGrade(draftGrade);
+    setQuestions([]);
+    setAskThread([]);
+    const name = GRADE_OPTIONS[level.id]?.find((g) => g.code === draftGrade)?.label ?? draftGrade;
+    toast.success(`Class updated to ${name}. ${settings.tutor_name} will now teach ${name}.`);
+  };
   const pickLevel = useCallback((next: ClassLevel) => {
     setLevel(next);
+    if (user) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(`tutor_active_class_${user.id}`) ?? "null") as
+          | { levelId: string; grade: string }
+          | null;
+        const g = saved?.levelId === next.id ? saved.grade : "";
+        setActiveGrade(g);
+        setDraftGrade(g || (GRADE_OPTIONS[next.id]?.[0]?.code ?? ""));
+      } catch {
+        /* ignore */
+      }
+    }
     setTab("practice");
     const first = next.subjects[0];
     setSubject(first?.name ?? "");
     setTopic(first?.topics[0] ?? "");
     setAskThread([]);
-  }, []);
+  }, [user]);
   const current = questions[index] ?? null;
   // New users get an admin-set number of free tutoring days (Practice + Ask Ama).
   const trialDays = Math.max(0, Number(settings.free_trial_days ?? 60));
@@ -290,6 +338,8 @@ function TutorPage() {
               tutorName: settings.tutor_name,
               language: settings.language,
               level: levelId,
+        ...(gradeRef.current ? { grade: gradeRef.current } : {}),
+              ...(gradeRef.current ? { grade: gradeRef.current } : {}),
               ...(standard ? { standard } : {}),
             },
           });
@@ -403,6 +453,7 @@ function TutorPage() {
         tutorName: settings.tutor_name,
         language: settings.language,
         level: levelId,
+        ...(gradeRef.current ? { grade: gradeRef.current } : {}),
         avoid,
         round: roundRef.current,
         ...(standard ? { standard } : {}),
@@ -465,6 +516,7 @@ function TutorPage() {
           tutorName: settings.tutor_name,
           language: settings.language,
           ...(level ? { level: level.id } : {}),
+          ...(gradeRef.current ? { grade: gradeRef.current } : {}),
           ...(current.subject ? { subject: current.subject } : {}),
         },
       });
@@ -544,6 +596,7 @@ function TutorPage() {
           tutorName: settings.tutor_name,
           language: settings.language,
           ...(level ? { level: level.id } : {}),
+          ...(gradeRef.current ? { grade: gradeRef.current } : {}),
           ...(q.subject ? { subject: q.subject } : {}),
         },
       })
@@ -625,6 +678,7 @@ function TutorPage() {
               tutorName: settings.tutor_name,
               language: settings.language,
               ...(level ? { level: level.id } : {}),
+              ...(gradeRef.current ? { grade: gradeRef.current } : {}),
               ...(subject ? { subject } : {}),
             },
           });
@@ -653,6 +707,7 @@ function TutorPage() {
             tutorName: settings.tutor_name,
             language: settings.language,
             ...(level ? { level: level.id } : {}),
+            ...(gradeRef.current ? { grade: gradeRef.current } : {}),
             ...(subject ? { subject } : {}),
           },
         });
@@ -734,6 +789,7 @@ function TutorPage() {
           tutorName: settings.tutor_name,
           language: settings.language,
           ...(level ? { level: level.id } : {}),
+          ...(gradeRef.current ? { grade: gradeRef.current } : {}),
           ...(subject ? { subject } : {}),
         },
       });
@@ -857,6 +913,36 @@ function TutorPage() {
           {level.label} · {level.exam}
         </span>
       </div>
+
+      {GRADE_OPTIONS[level.id] ? (
+        <section className="mx-5 mt-3 rounded-2xl border border-border bg-surface p-3">
+          <label htmlFor="tutor-grade" className="text-xs font-semibold">
+            Which class lesson do you want?
+          </label>
+          <div className="mt-2 flex gap-2">
+            <select
+              id="tutor-grade"
+              value={draftGrade}
+              onChange={(e) => setDraftGrade(e.target.value)}
+              className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+            >
+              {GRADE_OPTIONS[level.id].map((g) => (
+                <option key={g.code} value={g.code}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+            <Button size="sm" className="h-10" disabled={!draftGrade || draftGrade === activeGrade} onClick={updateGrade}>
+              Update
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {activeGrade
+              ? `Learning: ${GRADE_OPTIONS[level.id].find((g) => g.code === activeGrade)?.label ?? activeGrade}`
+              : "Pick your class and tap Update"}
+          </p>
+        </section>
+      ) : null}
 
       {pendingCheck ? (
         <section className="mx-5 my-4 rounded-2xl border border-primary/40 bg-primary/5 p-4">

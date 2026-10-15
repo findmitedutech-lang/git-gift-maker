@@ -159,14 +159,18 @@ export const generateQuestions = createServerFn({ method: "POST" })
 /**
  * JHS students are taught strictly from the GES vault — never from the internet.
  */
-function becePersona(name: string, context: string) {
-  return `You are ${name}, FindMit's BECE tutor for Ghanaian JHS students (Basic 7 to Basic 9).
+function becePersona(name: string, context: string, primary = false) {
+  const notFound = primary ? "This is not in your Basic syllabus vault yet." : "This is not in the JHS syllabus, focus on BECE.";
+  return `You are ${name}, FindMit's tutor for Ghanaian ${primary ? "primary pupils (Basic 1 to Basic 6)" : "JHS students (Basic 7 to Basic 9)"}.
 
 Rules you must never break:
 - You ONLY answer using the official GES NaCCA syllabus and BECE material in the VAULT below.
-- If the answer is not contained in or supported by the vault, reply exactly: "This is not in the JHS syllabus, focus on BECE."
+- If the answer is not contained in or supported by the vault, reply exactly: "${notFound}"
+- If the matching vault material is for a different class than the student's class, say "This topic is for <that class>. Switch to <that class>." and stop.
+- Start every answer with one line: <Class> > <Strand> > <Sub-strand> > Indicator <code>, taken from the vault.
+- Teach in 3 steps: "Step 1: What the syllabus says" (faithful paraphrase of the indicator), "Step 2: Break it down" (in simple terms with an everyday Ghanaian example suited to the age), "Step 3: Example" (a worked example following the vault exemplars).
 - Never search the internet, never use outside facts, never invent a syllabus standard.
-- After answering, follow the exact same pattern as the vault material and write a line "TRY THESE:" then give 2 NEW simpler examples of your own (number them 1. and 2.) so the student understands easily. Give the answer to each example on the next line.
+- After answering, follow the exact same pattern as the vault material and write a line "TRY THESE:" then give 5 NEW practice questions in the same GES pattern (2 same difficulty, 2 slightly harder, 1 exam-style) of your own (number them 1. and 2.) so the student understands easily. Give the answer to each question on the next line.
 - Teach the way a warm Ghanaian teacher teaches: short clauses, Ghanaian examples, encouragement.${BOARD_STYLE}
 
 VAULT (your only source):
@@ -202,7 +206,8 @@ export const askTutor = createServerFn({ method: "POST" })
           ]
         : text;
 
-    if (data.level === "jhs") {
+    if (data.level === "jhs" || data.level === "primary") {
+      const primary = data.level === "primary";
       const { searchVault, vaultContext } = await import("@/lib/vault.functions");
       let query = data.prompt;
       if (data.image) {
@@ -220,14 +225,15 @@ export const askTutor = createServerFn({ method: "POST" })
       // because vault subject names do not always match the class-level labels.
       const chunks = await searchVault(context.supabase, `${data.subject ?? ""} ${query}`.trim(), {
         grade: data.grade ?? null,
+        level: data.level,
         count: 3,
       });
       if (chunks.length === 0) {
-        return { answer: "This is not in the JHS syllabus, focus on BECE.", vault: [] };
+        return { answer: primary ? "This is not in your Basic syllabus vault yet." : "This is not in the JHS syllabus, focus on BECE.", vault: [] };
       }
       const answer = await callAi(
         [
-          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks)) + photoNote },
+          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), primary) + photoNote },
           { role: "user", content: userContent(data.prompt) },
         ],
         false,
@@ -364,7 +370,8 @@ export const chatWithAma = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // JHS students learn strictly from the GES vault — never from the internet.
-    if (data.level === "jhs") {
+    if (data.level === "jhs" || data.level === "primary") {
+      const primary = data.level === "primary";
       const { searchVault, vaultContext } = await import("@/lib/vault.functions");
       const chunks = await searchVault(context.supabase, `${data.subject ?? ""} ${data.question}`.trim(), {
         grade: data.grade ?? null,

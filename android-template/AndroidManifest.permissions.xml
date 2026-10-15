@@ -1,0 +1,31 @@
+<!--
+  Paste these entries into android/app/src/main/AndroidManifest.xml.
+
+  The <uses-permission> / <uses-feature> lines go directly inside <manifest>,
+  BEFORE the <application> tag.
+-->
+
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+<uses-permission
+  android:name="android.permission.READ_EXTERNAL_STORAGE"
+  android:maxSdkVersion="32" />
+
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+<uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+<!--
+  On the <application> tag itself add:
+    android:usesCleartextTraffic="true"
+    android:hardwareAccelerated="true"
+-->

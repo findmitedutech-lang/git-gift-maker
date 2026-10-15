@@ -112,15 +112,15 @@ function AdminVault() {
     return added;
   };
 
-  /** Loads the official NaCCA Basic 1–9 syllabus (every class and subject) into the vault. */
-  const loadOfficial = async () => {
-    if (!window.confirm("Load the official NaCCA Basic 1–9 curriculum into the vault? Only do this once.")) return;
-    setBusy("official");
+  /** Loads an official NaCCA curriculum bundle (every class and subject) into the vault. */
+  const loadOfficial = async (file = "/vault/nacca-b1-b9.json", label = "Basic 1–9", tag = "official") => {
+    if (!window.confirm(`Load the official NaCCA ${label} curriculum into the vault? Only do this once.`)) return;
+    setBusy(tag as typeof busy);
     try {
-      const res = await fetch("/vault/nacca-b1-b9.json");
+      const res = await fetch(file);
       const entries = (await res.json()) as VaultEntry[];
       const added = await save(entries);
-      toast.success(`Loaded ${added} official syllabus pieces for Basic 1–9`);
+      toast.success(`Loaded ${added} official syllabus pieces for ${label}`);
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load the curriculum");
@@ -259,11 +259,19 @@ function AdminVault() {
           </div>
           <button
             type="button"
-            onClick={loadOfficial}
+            onClick={() => void loadOfficial()}
             disabled={busy !== null}
             className="mt-3 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
             {busy === "official" ? progress || "Loading…" : "Load official NaCCA Basic 1–9 curriculum"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadOfficial("/vault/nacca-shs.json", "SHS 1–3", "official-shs")}
+            disabled={busy !== null}
+            className="mt-2 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {busy === "official-shs" ? progress || "Loading…" : "Load official NaCCA SHS 1–3 curriculum"}
           </button>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">

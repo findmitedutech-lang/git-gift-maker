@@ -926,7 +926,7 @@ function TutorPage() {
               onChange={(e) => setDraftGrade(e.target.value)}
               className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
             >
-              {GRADE_OPTIONS[level.id].map((g) => (
+              {(GRADE_OPTIONS[level.id] ?? []).map((g) => (
                 <option key={g.code} value={g.code}>
                   {g.label}
                 </option>
@@ -938,7 +938,7 @@ function TutorPage() {
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
             {activeGrade
-              ? `Learning: ${GRADE_OPTIONS[level.id].find((g) => g.code === activeGrade)?.label ?? activeGrade}`
+              ? `Learning: ${GRADE_OPTIONS[level.id]?.find((g) => g.code === activeGrade)?.label ?? activeGrade}`
               : "Pick your class and tap Update"}
           </p>
         </section>

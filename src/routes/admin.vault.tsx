@@ -112,6 +112,25 @@ function AdminVault() {
     return added;
   };
 
+  /** Loads the official NaCCA Basic 1–9 syllabus (every class and subject) into the vault. */
+  const loadOfficial = async () => {
+    if (!window.confirm("Load the official NaCCA Basic 1–9 curriculum into the vault? Only do this once.")) return;
+    setBusy("official");
+    try {
+      const res = await fetch("/vault/nacca-b1-b9.json");
+      const entries = (await res.json()) as VaultEntry[];
+      const added = await save(entries);
+      toast.success(`Loaded ${added} official syllabus pieces for Basic 1–9`);
+      await reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load the curriculum");
+    } finally {
+      setBusy(null);
+      setProgress("");
+    }
+  };
+
+
   const update = async () => {
     if (!pdf) {
       toast.error("Pick a PDF first");
@@ -238,6 +257,14 @@ function AdminVault() {
             <Stat value={summary?.indexed} label="Ready for Ama" />
             <Stat value={summary?.bySubject.length} label="Subjects" />
           </div>
+          <button
+            type="button"
+            onClick={loadOfficial}
+            disabled={busy !== null}
+            className="mt-3 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {busy === "official" ? progress || "Loading…" : "Load official NaCCA Basic 1–9 curriculum"}
+          </button>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">
             {(["textbook", "past"] as Kind[]).map((k) => (

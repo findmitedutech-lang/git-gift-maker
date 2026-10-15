@@ -375,14 +375,15 @@ export const chatWithAma = createServerFn({ method: "POST" })
       const { searchVault, vaultContext } = await import("@/lib/vault.functions");
       const chunks = await searchVault(context.supabase, `${data.subject ?? ""} ${data.question}`.trim(), {
         grade: data.grade ?? null,
+        level: data.level,
         count: 3,
       });
       if (chunks.length === 0) {
-        return { answer: "This is not in the JHS syllabus, focus on BECE.", sources: [] as WebSource[] };
+        return { answer: primary ? "This is not in your Basic syllabus vault yet." : "This is not in the JHS syllabus, focus on BECE.", sources: [] as WebSource[] };
       }
       const answer = await callAi(
         [
-          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks)) },
+          { role: "system", content: becePersona(data.tutorName, vaultContext(chunks), primary) },
           ...data.history,
           { role: "user", content: data.question },
         ],

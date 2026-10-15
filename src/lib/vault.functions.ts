@@ -143,7 +143,7 @@ export const indexVault = createServerFn({ method: "POST" })
     const { data: rows, error } = await sb
       .from("ges_vault_jhs")
       .select("id, subject, grade, strand, sub_strand, indicator, content")
-      .is("embedding", null)
+      .eq("published", false)
       .limit(data.limit);
     if (error) throw new Error(error.message);
     const list = (rows ?? []) as (VaultEntry & { id: string })[];
@@ -152,13 +152,13 @@ export const indexVault = createServerFn({ method: "POST" })
     for (let i = 0; i < list.length; i++) {
       await sb
         .from("ges_vault_jhs")
-        .update({ embedding: JSON.stringify(embeddings[i]) })
+        .update({ embedding: JSON.stringify(embeddings[i]), published: true })
         .eq("id", list[i]!.id);
     }
     const { count } = await sb
       .from("ges_vault_jhs")
       .select("id", { count: "exact", head: true })
-      .is("embedding", null);
+      .eq("published", false);
     return { indexed: list.length, remaining: count ?? 0 };
   });
 

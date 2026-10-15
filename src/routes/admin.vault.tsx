@@ -164,7 +164,7 @@ function AdminVault() {
       const added = await save(entries);
       localStorage.setItem(`vault_loaded_${tag}`, fingerprint(text));
       setLoaded((s) => ({ ...s, [tag]: true }));
-      toast.success(`Load complete: ${added} official syllabus pieces for ${label}`);
+      toast.success(`Load complete: ${added} official syllabus pieces for ${label}. Tap "Update AI tutor" so Ama can use them.`);
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load the curriculum");
@@ -192,7 +192,7 @@ function AdminVault() {
       }
       if (entries.length === 0) throw new Error("No readable text was found in that file");
       const added = await save(entries);
-      toast.success(`Vault updated — Ama can now use ${added} new pieces`);
+      toast.success(`${added} new pieces saved. Tap "Update AI tutor" so Ama can use them.`);
       setPdf(null);
       await reload();
     } catch (err) {
@@ -223,7 +223,7 @@ function AdminVault() {
           source_type: kind === "past" ? (levelId === "jhs" ? "bece_past_question" : "past_question") : "textbook",
         },
       ]);
-      toast.success("Added to the vault");
+      toast.success("Added to the vault — tap \"Update AI tutor\" so Ama can use it");
       setContent("");
       setSourceText("");
       await reload();
@@ -317,6 +317,24 @@ function AdminVault() {
           >
             {busy === "official-shs" ? progress || "Loading…" : loaded["official-shs"] ? "✓ Load complete — SHS 1–3 curriculum" : "Load official NaCCA SHS 1–3 curriculum"}
           </button>
+
+          <button
+            type="button"
+            onClick={() => void updateTutor()}
+            disabled={busy !== null || pending <= 0}
+            className="mt-2 h-11 w-full rounded-xl bg-accent text-sm font-semibold text-accent-foreground disabled:opacity-60"
+          >
+            {busy === "publish"
+              ? progress || "Updating…"
+              : pending > 0
+                ? `Update AI tutor — ${pending} new piece${pending === 1 ? "" : "s"} waiting`
+                : "✓ AI tutor is up to date"}
+          </button>
+          {pending > 0 && busy === null ? (
+            <p className="mt-1 text-center text-[11px] text-muted-foreground">
+              Ama cannot use newly loaded material until you tap Update.
+            </p>
+          ) : null}
 
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">
             {(["textbook", "past"] as Kind[]).map((k) => (

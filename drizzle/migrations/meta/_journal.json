@@ -162,6 +162,13 @@
       "when": 1792000278431,
       "tag": "0022_shop_name_available",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792057987029,
+      "tag": "0023_retry_after_enum_fix",
+      "breakpoints": true
     }
   ]
 }

@@ -112,15 +112,43 @@ function AdminVault() {
     return added;
   };
 
+  /** Fingerprint of a bundle file — changes only when the file gets new content. */
+  const fingerprint = (text: string) => {
+    let h = 5381;
+    for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+    return `${text.length}-${h.toString(36)}`;
+  };
+  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const files: Array<[string, string]> = [
+      ["official", "/vault/nacca-b1-b9.json"],
+      ["official-shs", "/vault/nacca-shs.json"],
+    ];
+    void Promise.all(
+      files.map(async ([tag, file]) => {
+        try {
+          const fp = fingerprint(await (await fetch(file)).text());
+          return [tag, localStorage.getItem(`vault_loaded_${tag}`) === fp] as const;
+        } catch {
+          return [tag, false] as const;
+        }
+      }),
+    ).then((r) => setLoaded(Object.fromEntries(r)));
+  }, []);
+
   /** Loads an official NaCCA curriculum bundle (every class and subject) into the vault. */
   const loadOfficial = async (file = "/vault/nacca-b1-b9.json", label = "Basic 1–9", tag = "official") => {
+    if (loaded[tag]) return;
     if (!window.confirm(`Load the official NaCCA ${label} curriculum into the vault? Only do this once.`)) return;
     setBusy(tag as typeof busy);
     try {
       const res = await fetch(file);
-      const entries = (await res.json()) as VaultEntry[];
+      const text = await res.text();
+      const entries = JSON.parse(text) as VaultEntry[];
       const added = await save(entries);
-      toast.success(`Loaded ${added} official syllabus pieces for ${label}`);
+      localStorage.setItem(`vault_loaded_${tag}`, fingerprint(text));
+      setLoaded((s) => ({ ...s, [tag]: true }));
+      toast.success(`Load complete: ${added} official syllabus pieces for ${label}`);
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load the curriculum");
@@ -260,18 +288,18 @@ function AdminVault() {
           <button
             type="button"
             onClick={() => void loadOfficial()}
-            disabled={busy !== null}
+            disabled={busy !== null || loaded["official"]}
             className="mt-3 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {busy === "official" ? progress || "Loading…" : "Load official NaCCA Basic 1–9 curriculum"}
+            {busy === "official" ? progress || "Loading…" : loaded["official"] ? "✓ Load complete — Basic 1–9 curriculum" : "Load official NaCCA Basic 1–9 curriculum"}
           </button>
           <button
             type="button"
             onClick={() => void loadOfficial("/vault/nacca-shs.json", "SHS 1–3", "official-shs")}
-            disabled={busy !== null}
+            disabled={busy !== null || loaded["official-shs"]}
             className="mt-2 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {busy === "official-shs" ? progress || "Loading…" : "Load official NaCCA SHS 1–3 curriculum"}
+            {busy === "official-shs" ? progress || "Loading…" : loaded["official-shs"] ? "✓ Load complete — SHS 1–3 curriculum" : "Load official NaCCA SHS 1–3 curriculum"}
           </button>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">

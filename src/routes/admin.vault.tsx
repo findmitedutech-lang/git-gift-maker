@@ -112,15 +112,15 @@ function AdminVault() {
     return added;
   };
 
-  /** Loads the official NaCCA Basic 1–9 syllabus (every class and subject) into the vault. */
-  const loadOfficial = async () => {
-    if (!window.confirm("Load the official NaCCA Basic 1–9 curriculum into the vault? Only do this once.")) return;
-    setBusy("official");
+  /** Loads an official NaCCA curriculum bundle (every class and subject) into the vault. */
+  const loadOfficial = async (file = "/vault/nacca-b1-b9.json", label = "Basic 1–9", tag = "official") => {
+    if (!window.confirm(`Load the official NaCCA ${label} curriculum into the vault? Only do this once.`)) return;
+    setBusy(tag as typeof busy);
     try {
-      const res = await fetch("/vault/nacca-b1-b9.json");
+      const res = await fetch(file);
       const entries = (await res.json()) as VaultEntry[];
       const added = await save(entries);
-      toast.success(`Loaded ${added} official syllabus pieces for Basic 1–9`);
+      toast.success(`Loaded ${added} official syllabus pieces for ${label}`);
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load the curriculum");

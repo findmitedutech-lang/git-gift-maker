@@ -1175,6 +1175,7 @@ export type Database = {
           id: string
           indicator: string | null
           level: string
+          published: boolean
           source_text: string | null
           source_type: string
           strand: string | null
@@ -1191,6 +1192,7 @@ export type Database = {
           id?: string
           indicator?: string | null
           level?: string
+          published?: boolean
           source_text?: string | null
           source_type?: string
           strand?: string | null
@@ -1207,6 +1209,7 @@ export type Database = {
           id?: string
           indicator?: string | null
           level?: string
+          published?: boolean
           source_text?: string | null
           source_type?: string
           strand?: string | null

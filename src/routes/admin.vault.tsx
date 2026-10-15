@@ -386,7 +386,7 @@ function AdminVault() {
           />
           <Button className="mt-3 w-full gap-2" onClick={() => void update()} disabled={busy !== null || !pdf}>
             {busy === "update" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            Update vault
+            Save to vault
           </Button>
           {progress ? <p className="mt-2 text-center text-xs text-muted-foreground">{progress}</p> : null}
         </section>

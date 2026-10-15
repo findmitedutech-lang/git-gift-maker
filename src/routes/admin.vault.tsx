@@ -288,18 +288,18 @@ function AdminVault() {
           <button
             type="button"
             onClick={() => void loadOfficial()}
-            disabled={busy !== null}
+            disabled={busy !== null || loaded.official}
             className="mt-3 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {busy === "official" ? progress || "Loading…" : "Load official NaCCA Basic 1–9 curriculum"}
+            {busy === "official" ? progress || "Loading…" : loaded.official ? "✓ Load complete — Basic 1–9 curriculum" : "Load official NaCCA Basic 1–9 curriculum"}
           </button>
           <button
             type="button"
             onClick={() => void loadOfficial("/vault/nacca-shs.json", "SHS 1–3", "official-shs")}
-            disabled={busy !== null}
+            disabled={busy !== null || loaded["official-shs"]}
             className="mt-2 h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            {busy === "official-shs" ? progress || "Loading…" : "Load official NaCCA SHS 1–3 curriculum"}
+            {busy === "official-shs" ? progress || "Loading…" : loaded["official-shs"] ? "✓ Load complete — SHS 1–3 curriculum" : "Load official NaCCA SHS 1–3 curriculum"}
           </button>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl border border-border bg-muted p-1">

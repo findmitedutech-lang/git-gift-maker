@@ -112,7 +112,7 @@ function AdminVault() {
     setBusy("publish");
     try {
       for (let guard = 0; guard < 200; guard++) {
-        const res = await runIndex({ data: { limit: 60 } });
+        const res = await runIndex({ data: { limit: 500 } });
         if (res.indexed === 0 || res.remaining === 0) break;
         setProgress(`Updating Ama… ${res.remaining} left`);
       }

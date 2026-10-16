@@ -135,7 +135,7 @@ export const addVaultEntries = createServerFn({ method: "POST" })
 /** Publishes pending vault rows: embeds them so Ama can find and use them. */
 export const indexVault = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ limit: z.number().int().min(1).max(200).default(60) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ limit: z.number().int().min(1).max(500).default(60) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

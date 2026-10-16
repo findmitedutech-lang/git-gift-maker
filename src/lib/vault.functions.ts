@@ -148,12 +148,24 @@ export const indexVault = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const list = (rows ?? []) as (VaultEntry & { id: string })[];
     if (list.length === 0) return { indexed: 0, remaining: 0 };
-    const embeddings = await embedTexts(list.map((r) => rowText(r)));
-    for (let i = 0; i < list.length; i++) {
-      await sb
+    let embeddings: number[][] | null = null;
+    if (process.env["GEMINI_API_KEY"]) {
+      embeddings = await embedTexts(list.map((r) => rowText(r))).catch(() => null);
+    }
+    if (embeddings) {
+      for (let i = 0; i < list.length; i++) {
+        await sb
+          .from("ges_vault_jhs")
+          .update({ embedding: JSON.stringify(embeddings[i]), published: true })
+          .eq("id", list[i]!.id);
+      }
+    } else {
+      // No embedding key: publish directly; Ama finds these through the built-in text search.
+      const { error: upErr } = await sb
         .from("ges_vault_jhs")
-        .update({ embedding: JSON.stringify(embeddings[i]), published: true })
-        .eq("id", list[i]!.id);
+        .update({ published: true })
+        .in("id", list.map((r) => r.id));
+      if (upErr) throw new Error(upErr.message);
     }
     const { count } = await sb
       .from("ges_vault_jhs")

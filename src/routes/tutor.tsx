@@ -42,6 +42,7 @@ import {
   FIELD_SUBJECTS,
 } from "@/lib/tutor";
 import { LongPressPlay } from "@/components/tutor/LongPressPlay";
+import { KidsWordTracer } from "@/components/tutor/KidsWordTracer";
 import { useFreeAccess } from "@/lib/free-access";
 
 export const Route = createFileRoute("/tutor")({
@@ -866,7 +867,9 @@ function TutorPage() {
         </div>
       </header>
 
-      {!level ? (
+      {level?.id === "kids" ? (
+        <KidsWordTracer onBack={() => setLevel(null)} />
+      ) : !level ? (
         <section className="px-5 py-6">
           <p className="text-sm text-muted-foreground">{settings.greeting}</p>
           <h2 className="mt-5 text-sm font-semibold">Choose your class</h2>

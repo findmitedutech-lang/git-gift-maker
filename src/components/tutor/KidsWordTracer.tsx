@@ -12,7 +12,7 @@ function shuffled<T>(list: T[]) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j] as T, a[i] as T];
   }
   return a;
 }
@@ -35,7 +35,7 @@ export function KidsWordTracer({ onBack }: { onBack: () => void }) {
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
-  const item = deck[i % deck.length];
+  const item = deck[i % deck.length]!;
   const word = item.word.toUpperCase();
 
   const say = useCallback((text: string, onDone?: () => void) => {
@@ -98,8 +98,8 @@ export function KidsWordTracer({ onBack }: { onBack: () => void }) {
     let stray = 0;
     let drawn = 0;
     for (let p = 3; p < mask.length; p += 16) {
-      const inMask = mask[p] > 0;
-      const inDraw = d[p] > 0;
+      const inMask = (mask[p] ?? 0) > 0;
+      const inDraw = (d[p] ?? 0) > 0;
       if (inMask) {
         total++;
         if (inDraw) hit++;

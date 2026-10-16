@@ -135,7 +135,7 @@ export const addVaultEntries = createServerFn({ method: "POST" })
 /** Publishes pending vault rows: embeds them so Ama can find and use them. */
 export const indexVault = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ limit: z.number().int().min(1).max(200).default(60) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ limit: z.number().int().min(1).max(500).default(60) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,12 +148,24 @@ export const indexVault = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const list = (rows ?? []) as (VaultEntry & { id: string })[];
     if (list.length === 0) return { indexed: 0, remaining: 0 };
-    const embeddings = await embedTexts(list.map((r) => rowText(r)));
-    for (let i = 0; i < list.length; i++) {
-      await sb
+    let embeddings: number[][] | null = null;
+    if (process.env["GEMINI_API_KEY"]) {
+      embeddings = await embedTexts(list.map((r) => rowText(r))).catch(() => null);
+    }
+    if (embeddings) {
+      for (let i = 0; i < list.length; i++) {
+        await sb
+          .from("ges_vault_jhs")
+          .update({ embedding: JSON.stringify(embeddings[i]), published: true })
+          .eq("id", list[i]!.id);
+      }
+    } else {
+      // No embedding key: publish directly; Ama finds these through the built-in text search.
+      const { error: upErr } = await sb
         .from("ges_vault_jhs")
-        .update({ embedding: JSON.stringify(embeddings[i]), published: true })
-        .eq("id", list[i]!.id);
+        .update({ published: true })
+        .in("id", list.map((r) => r.id));
+      if (upErr) throw new Error(upErr.message);
     }
     const { count } = await sb
       .from("ges_vault_jhs")
